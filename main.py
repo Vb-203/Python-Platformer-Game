@@ -63,6 +63,15 @@ class Player(pygame.sprite.Sprite):
         self.direction = "left"
         self.animation_count = 0
         self.fall_count = 0
+        self.jump_count = 0
+
+    def jump(self):
+        self.y_vel = -self.GRAVITY*8
+        self.animation_count = 0
+        self.jump_count+=1
+        if self.jump_count ==1:
+            self.fall_count = 0
+
 
     def move(self, dx, dy):
         self.rect.x += dx
@@ -99,15 +108,26 @@ class Player(pygame.sprite.Sprite):
 
     def update_sprite(self):
         sprite_sheet = "idle"
-        if self.x_vel !=0:
+        if self.y_vel < 0:
+            if self.jump_count == 1:
+                sprite_sheet = "jump"
+            elif self.jump_count == 2:
+                sprite_sheet = "double_jump"
+        elif self.y_vel > self.GRAVITY*2 :
+            sprite_sheet = "fall"
+        elif self.x_vel !=0:
             sprite_sheet = "run"
 
         sprite_sheet_name = sprite_sheet + "_" + self.direction
+        #print(sprite_sheet_name )
+        #print("Available sprites:", list(self.SPRITES.keys()))
         sprites = self.SPRITES[sprite_sheet_name]
+        #print("length of sprite", len(sprites))
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
         self.sprite = sprites[sprite_index]
         self.animation_count += 1
         self.update()
+
 
     def update(self):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
@@ -152,15 +172,16 @@ def get_background(name):
     return tiles,image
 
 def draw(window, background, bg_image,player,objects):
+    #print ("insde draw")
     for tile in background:
         window.blit(bg_image, tile)
-
+    #print("object")
     for obj in objects:
         obj.draw(window)
 
-
+    #print ("draw")
     player.draw(window)
-
+    #print ("display window")
     pygame.display.update()
 
 def handle_vertical_collisions(player,objects,dy):
@@ -205,16 +226,28 @@ def main(window):
     floor = [Block(i * block_size, HEIGHT - block_size, block_size)for i in range(-WIDTH//block_size,(WIDTH*2)//block_size)]
 
 
+
     run = True
+    #print ("before run")
     while run:
         clock.tick(FPS)
 
         for event in pygame.event.get():
+            #print("Inside event")
             if event.type == pygame.QUIT:
                 run = False
                 break
+
+            if event.type == pygame.KEYDOWN:
+                #print(player.jump_count)
+                if event.key == pygame.K_SPACE and player.jump_count < 2:
+                    player.jump()
+
+        #print ("loop")
         player.loop(FPS)
+        #print("handle move")
         handle_move(player,floor)
+        #print ("draw")
         draw(window, background, bg_image, player , floor)
 
     pygame.quit()
